@@ -7,6 +7,8 @@ import {
   TouchableOpacity,
   TextInput,
   Alert,
+  ActionSheetIOS,
+  Platform,
   ActivityIndicator,
   Image,
 } from 'react-native';
@@ -24,10 +26,16 @@ export default function SpotDetailScreen({ route, navigation }) {
   const [submitting, setSubmitting] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [isPro, setIsPro] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState(null);
+  const [blockedUsers, setBlockedUsers] = useState(new Set());
 
   useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) setCurrentUserId(session.user.id);
+    });
     fetchReviews();
     fetchMedia();
+    fetchBlockedUsers();
     getProStatus().then(setIsPro);
   }, []);
 
@@ -35,10 +43,17 @@ export default function SpotDetailScreen({ route, navigation }) {
     setLoading(true);
     const { data, error } = await supabase
       .from('reviews')
-      .select('*')
+      .select('*, profiles(username)')
       .eq('spot_id', spot.id)
       .order('created_at', { ascending: false });
-    if (!error) setReviews(data);
+    if (!error && data) {
+      // Flatten username and filter blocked users
+      const enriched = data.map(r => ({
+        ...r,
+        username: r.profiles?.username || 'Unknown',
+      }));
+      setReviews(enriched.filter(r => !blockedUsers.has(r.user_id)));
+    }
     setLoading(false);
   }
 
@@ -48,7 +63,118 @@ export default function SpotDetailScreen({ route, navigation }) {
       .select('*')
       .eq('spot_id', spot.id)
       .order('vote_count', { ascending: false });
-    if (!error) setMedia(data);
+    if (!error && data) {
+      setMedia(data.filter(m => !blockedUsers.has(m.user_id)));
+    }
+  }
+
+  async function fetchBlockedUsers() {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+    const { data } = await supabase
+      .from('blocked_users')
+      .select('blocked_id')
+      .eq('blocker_id', session.user.id);
+    if (data) setBlockedUsers(new Set(data.map(r => r.blocked_id)));
+  }
+
+  async function reportContent(contentType, contentId) {
+    const REASONS = ['Spam', 'Inappropriate content', 'Harassment', 'False information', 'Other'];
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+
+    Alert.alert('Report content', 'Why are you reporting this?', [
+      ...REASONS.map(reason => ({
+        text: reason,
+        onPress: async () => {
+          await supabase.from('reports').insert({
+            reporter_id: session.user.id,
+            content_type: contentType,
+            content_id: contentId,
+            reason: reason,
+          });
+          Alert.alert('Reported', 'Thanks for letting us know. We\'ll review this shortly.');
+        },
+      })),
+      { text: 'Cancel', style: 'cancel' },
+    ]);
+  }
+
+  async function blockUser(targetUserId, targetUsername) {
+    if (!targetUserId || targetUserId === currentUserId) return;
+    Alert.alert(
+      `Block ${targetUsername || 'this user'}?`,
+      'Their content will be hidden from you. You can unblock them in Settings.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Block',
+          style: 'destructive',
+          onPress: async () => {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) return;
+            await supabase.from('blocked_users').upsert({
+              blocker_id: session.user.id,
+              blocked_id: targetUserId,
+            });
+            setBlockedUsers(prev => new Set([...prev, targetUserId]));
+            Alert.alert('Blocked', 'This user\'s content is now hidden.');
+          },
+        },
+      ]
+    );
+  }
+
+  function showReviewActions(review) {
+    const isOwn = review.user_id === currentUserId;
+    const options = isOwn
+      ? ['Cancel']
+      : ['Report review', `Block user`, 'Cancel'];
+    const cancelIdx = isOwn ? 0 : 2;
+    const destructiveIdx = isOwn ? undefined : 1;
+
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions(
+        { options, cancelButtonIndex: cancelIdx, destructiveButtonIndex: destructiveIdx },
+        (idx) => {
+          if (!isOwn) {
+            if (idx === 0) reportContent('review', review.id);
+            if (idx === 1) blockUser(review.user_id, review.username);
+          }
+        }
+      );
+    } else {
+      Alert.alert('Options', null, [
+        { text: 'Report review', onPress: () => reportContent('review', review.id) },
+        { text: 'Block user', style: 'destructive', onPress: () => blockUser(review.user_id, review.username) },
+        { text: 'Cancel', style: 'cancel' },
+      ]);
+    }
+  }
+
+  function showMediaActions(item) {
+    const isOwn = item.user_id === currentUserId;
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options: isOwn ? ['Cancel'] : ['Report photo', 'Block user', 'Cancel'],
+          cancelButtonIndex: isOwn ? 0 : 2,
+          destructiveButtonIndex: isOwn ? undefined : 1,
+        },
+        (idx) => {
+          if (!isOwn) {
+            if (idx === 0) reportContent('media', item.id);
+            if (idx === 1) blockUser(item.user_id, null);
+          }
+        }
+      );
+    } else {
+      Alert.alert('Options', null, [
+        { text: 'Report photo', onPress: () => reportContent('media', item.id) },
+        { text: 'Block user', style: 'destructive', onPress: () => blockUser(item.user_id, null) },
+        { text: 'Cancel', style: 'cancel' },
+      ]);
+    }
   }
 
   async function submitReview() {
@@ -246,6 +372,13 @@ async function voteOnMedia(mediaItem) {
                     <Text style={styles.crownText}>KING</Text>
                   </View>
                 )}
+                <TouchableOpacity
+                  style={styles.mediaMenuButton}
+                  onPress={() => showMediaActions(item)}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <Text style={styles.mediaMenuText}>⋯</Text>
+                </TouchableOpacity>
                 <Image source={{ uri: item.url }} style={styles.mediaImage} />
                 <TouchableOpacity
                   style={styles.voteButton}
@@ -307,10 +440,17 @@ async function voteOnMedia(mediaItem) {
           reviews.map((review) => (
             <View key={review.id} style={styles.reviewCard}>
               <View style={styles.reviewHeader}>
-                <Text style={styles.reviewUser}>Anonymous</Text>
-                <Text style={styles.reviewRating}>
-                  {'★'.repeat(review.rating)}
-                </Text>
+                <Text style={styles.reviewUser}>{review.username}</Text>
+                <View style={styles.reviewHeaderRight}>
+                  <Text style={styles.reviewRating}>{'★'.repeat(review.rating)}</Text>
+                  <TouchableOpacity
+                    onPress={() => showReviewActions(review)}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    style={styles.reviewMenuButton}
+                  >
+                    <Text style={styles.reviewMenuText}>⋯</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
               <Text style={styles.reviewContent}>{review.content}</Text>
               <Text style={styles.reviewDate}>
@@ -356,7 +496,12 @@ const styles = StyleSheet.create({
   buttonText: { color: '#0a0a0a', fontWeight: 'bold', fontSize: 14, letterSpacing: 1 },
   emptyText: { color: '#444', fontSize: 14, textAlign: 'center', marginTop: 12 },
   reviewCard: { backgroundColor: '#161616', borderRadius: 10, padding: 14, marginBottom: 10, borderWidth: 1, borderColor: '#222' },
-  reviewHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
+  reviewHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
+  reviewHeaderRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  reviewMenuButton: { padding: 4 },
+  reviewMenuText: { color: '#444', fontSize: 16, letterSpacing: 1 },
+  mediaMenuButton: { position: 'absolute', top: 8, right: 8, zIndex: 2, backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 12, paddingHorizontal: 8, paddingVertical: 2 },
+  mediaMenuText: { color: '#ccc', fontSize: 14, letterSpacing: 1 },
   reviewUser: { color: '#E8C84A', fontSize: 12, fontWeight: 'bold' },
   reviewRating: { color: '#E8C84A', fontSize: 12 },
   reviewContent: { color: '#ccc', fontSize: 14, lineHeight: 20 },

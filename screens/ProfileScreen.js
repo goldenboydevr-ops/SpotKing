@@ -80,6 +80,44 @@ export default function ProfileScreen() {
     await supabase.auth.signOut();
   }
 
+  function handleDeleteAccount() {
+    Alert.alert(
+      'Delete Account',
+      'This will permanently delete your account, all your spots, reviews, photos, and votes. This cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete My Account',
+          style: 'destructive',
+          onPress: () => {
+            Alert.alert(
+              'Are you absolutely sure?',
+              'Your SpotKing account and all data will be gone forever.',
+              [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                  text: 'Yes, Delete Everything',
+                  style: 'destructive',
+                  onPress: async () => {
+                    try {
+                      await supabase.rpc('delete_user_account');
+                      await supabase.auth.signOut();
+                    } catch (e) {
+                      Alert.alert(
+                        'Error',
+                        'Could not delete account. Please email support@spotking.app and we\'ll delete it manually within 7 days.'
+                      );
+                    }
+                  },
+                },
+              ]
+            );
+          },
+        },
+      ]
+    );
+  }
+
   function handleUpgrade() {
     navigation.navigate('Paywall');
   }
@@ -186,6 +224,10 @@ export default function ProfileScreen() {
       <TouchableOpacity style={styles.signOutButton} onPress={signOut}>
         <Text style={styles.signOutText}>SIGN OUT</Text>
       </TouchableOpacity>
+
+      <TouchableOpacity style={styles.deleteButton} onPress={handleDeleteAccount}>
+        <Text style={styles.deleteButtonText}>Delete Account</Text>
+      </TouchableOpacity>
     </ScrollView>
   );
 }
@@ -216,6 +258,8 @@ const styles = StyleSheet.create({
   menuItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, borderBottomWidth: 1, borderBottomColor: '#222' },
   menuText: { color: '#ccc', fontSize: 15 },
   menuArrow: { color: '#555', fontSize: 20 },
-  signOutButton: { borderWidth: 1, borderColor: '#333', borderRadius: 10, padding: 16, alignItems: 'center' },
+  signOutButton: { borderWidth: 1, borderColor: '#333', borderRadius: 10, padding: 16, alignItems: 'center', marginBottom: 12 },
   signOutText: { color: '#555', fontWeight: 'bold', letterSpacing: 2, fontSize: 13 },
+  deleteButton: { alignItems: 'center', paddingVertical: 12, marginBottom: 32 },
+  deleteButtonText: { color: '#333', fontSize: 13 },
 });
