@@ -1,29 +1,54 @@
 {
   "expo": {
-    "name": "spotking",
+    "name": "SpotKing",
     "slug": "spotking",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
-    "newArchEnabled": true,
+    "userInterfaceStyle": "dark",
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
-    },
-    "ios": {
-      "supportsTablet": true
+      "backgroundColor": "#0a0a0a"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#0a0a0a"
       },
-      "edgeToEdgeEnabled": true
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyCO1zElgBXnn_Sx0mPLlGXFhSuv3DG5Pik"
+        }
+      },
+      "package": "com.spotking.app",
+      "permissions": [
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.INTERNET",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE"
+      ]
     },
-    "web": {
-      "favicon": "./assets/favicon.png"
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.spotking.app",
+      "config": {
+        "googleMapsApiKey": "AIzaSyCO1zElgBXnn_Sx0mPLlGXFhSuv3DG5Pik"
+      }
+    },
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "SpotKing needs your location to show nearby spots."
+        }
+      ],
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "639f23cc-bace-43d9-bbad-317976754878"
+      }
     }
   }
 }
