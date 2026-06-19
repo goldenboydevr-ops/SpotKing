@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
 import { StatusBar } from 'expo-status-bar';
-import { Text, View, ActivityIndicator } from 'react-native';
+import { Text, View } from 'react-native';
+import * as SplashScreen from 'expo-splash-screen';
 
 import { supabase } from './lib/supabase';
 import { initPurchases, identifyUser, resetUser } from './lib/purchases';
@@ -16,6 +17,9 @@ import ProfileScreen from './screens/ProfileScreen';
 import AuthScreen from './screens/AuthScreen';
 import SpotDetailScreen from './screens/SpotDetailScreen';
 import PaywallScreen from './screens/PaywallScreen';
+
+// Keep splash screen visible while we check auth
+SplashScreen.preventAutoHideAsync();
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -67,17 +71,26 @@ function MainTabs() {
 
 export default function App() {
   const [session, setSession] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [appReady, setAppReady] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      if (session?.user) {
-        initPurchases(session.user.id);
+    async function prepare() {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        setSession(session);
+        // Init RevenueCat after auth — don't block the splash
+        if (session?.user) {
+          initPurchases(session.user.id);
+        }
+      } catch (e) {
+        console.warn('Auth check error:', e);
+      } finally {
+        setAppReady(true);
       }
-      setLoading(false);
-    });
-    supabase.auth.onAuthStateChange((event, session) => {
+    }
+    prepare();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session);
       if (event === 'SIGNED_IN' && session?.user) {
         identifyUser(session.user.id);
@@ -85,22 +98,28 @@ export default function App() {
         resetUser();
       }
     });
+
+    return () => subscription.unsubscribe();
   }, []);
 
-  if (loading) {
+  const onLayoutRootView = useCallback(async () => {
+    if (appReady) {
+      await SplashScreen.hideAsync();
+    }
+  }, [appReady]);
+
+  if (!appReady) return null; // Keep native splash screen visible
+
+  if (!session) {
     return (
-      <View style={{ flex: 1, backgroundColor: '#0a0a0a', alignItems: 'center', justifyContent: 'center' }}>
-        <ActivityIndicator color="#E8C84A" />
+      <View style={{ flex: 1 }} onLayout={onLayoutRootView}>
+        <AuthScreen />
       </View>
     );
   }
 
-  if (!session) {
-    return <AuthScreen />;
-  }
-
   return (
-    <NavigationContainer>
+    <NavigationContainer onReady={onLayoutRootView}>
       <StatusBar style="light" />
       <Stack.Navigator
         screenOptions={{
@@ -110,21 +129,9 @@ export default function App() {
           headerBackTitleVisible: false,
         }}
       >
-        <Stack.Screen
-          name="Main"
-          component={MainTabs}
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="SpotDetail"
-          component={SpotDetailScreen}
-          options={{ title: 'SPOT' }}
-        />
-        <Stack.Screen
-          name="Paywall"
-          component={PaywallScreen}
-          options={{ title: 'GO PRO', presentation: 'modal' }}
-        />
+        <Stack.Screen name="Main" component={MainTabs} options={{ headerShown: false }} />
+        <Stack.Screen name="SpotDetail" component={SpotDetailScreen} options={{ title: 'SPOT' }} />
+        <Stack.Screen name="Paywall" component={PaywallScreen} options={{ title: 'GO PRO', presentation: 'modal' }} />
       </Stack.Navigator>
     </NavigationContainer>
   );
