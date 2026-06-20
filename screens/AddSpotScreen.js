@@ -113,7 +113,7 @@ console.log('User ID:', user?.id);
             style={[styles.heatChip, heatLevel >= h && styles.heatChipActive]}
             onPress={() => setHeatLevel(h)}
           >
-            <Text style={styles.heatText}>🔴</Text>
+            <Text style={styles.heatText}>{heatLevel >= h ? '🚨' : '🔵'}</Text>
           </TouchableOpacity>
         ))}
       </View>

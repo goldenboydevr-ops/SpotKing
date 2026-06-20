@@ -131,12 +131,12 @@ export default function ExploreScreen() {
 
   function handleUndiscoveredTap(spot) {
     Alert.alert(
-      '🔒 Undiscovered Spot',
-      `"${spot.name}" hasn't been claimed yet.\n\nFind it and be the first to add it — whoever drops the first photo becomes King.`,
+      '👑 Unclaimed Territory',
+      `"${spot.name}" has never been claimed.\n\nBe the first to drop in, put it on the map, and post a photo — the crown is yours for the taking.`,
       [
-        { text: 'Maybe later', style: 'cancel' },
+        { text: "I'll pass 🤙", style: 'cancel' },
         {
-          text: 'Add this spot',
+          text: 'Claim This Spot 👑',
           onPress: () => navigation.navigate('Add Spot'),
         },
       ]

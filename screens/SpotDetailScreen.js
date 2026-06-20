@@ -331,17 +331,17 @@ async function voteOnMedia(mediaItem) {
         <Text style={styles.sectionTitle}>HEAT LEVEL</Text>
         <View style={styles.heatRow}>
           {Array.from({ length: 5 }, (_, i) => (
-            <Text key={i} style={{ fontSize: 28, opacity: i < spot.heat_level ? 1 : 0.15, color: '#e84a4a' }}>
-              ★
+            <Text key={i} style={{ fontSize: 26, opacity: i < spot.heat_level ? 1 : 0.15 }}>
+              🚨
             </Text>
           ))}
         </View>
         <Text style={styles.heatLabel}>
-          {spot.heat_level <= 1 && 'All clear - skate/surf freely'}
-          {spot.heat_level === 2 && 'Occasional patrols'}
-          {spot.heat_level === 3 && 'Regular security presence'}
-          {spot.heat_level === 4 && 'High risk - be quick'}
-          {spot.heat_level >= 5 && 'Danger zone - cops always here'}
+          {spot.heat_level <= 1 && '✅ All clear — skate/surf freely'}
+          {spot.heat_level === 2 && '👀 Occasional patrols — stay sharp'}
+          {spot.heat_level === 3 && '⚠️ Regular security presence'}
+          {spot.heat_level === 4 && '🔥 High risk — be quick'}
+          {spot.heat_level >= 5 && '🚔 Danger zone — cops always here'}
         </Text>
       </View>
 
