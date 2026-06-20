@@ -38,12 +38,21 @@ export default function AuthScreen() {
       setLoading(false);
       return;
     }
+
+    // Set the session explicitly so RLS auth.uid() works immediately
+    if (data.session) {
+      await supabase.auth.setSession(data.session);
+    }
+
     if (data.user) {
-      await supabase.from('profiles').upsert({
+      const { error: profileError } = await supabase.from('profiles').upsert({
         id: data.user.id,
         username: username.trim(),
         created_at: new Date().toISOString(),
       });
+      if (profileError) {
+        console.warn('Profile upsert error:', profileError.message);
+      }
     }
     setLoading(false);
   }
