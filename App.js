@@ -5,6 +5,7 @@ import { createStackNavigator } from '@react-navigation/stack';
 import { StatusBar } from 'expo-status-bar';
 import { Text, View } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { supabase } from './lib/supabase';
 import { initPurchases, identifyUser, resetUser } from './lib/purchases';
@@ -17,6 +18,7 @@ import ProfileScreen from './screens/ProfileScreen';
 import AuthScreen from './screens/AuthScreen';
 import SpotDetailScreen from './screens/SpotDetailScreen';
 import PaywallScreen from './screens/PaywallScreen';
+import OnboardingScreen from './screens/OnboardingScreen';
 
 // Keep splash screen visible while we check auth
 SplashScreen.preventAutoHideAsync();
@@ -72,13 +74,17 @@ function MainTabs() {
 export default function App() {
   const [session, setSession] = useState(null);
   const [appReady, setAppReady] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   useEffect(() => {
     async function prepare() {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const [{ data: { session } }, onboardingDone] = await Promise.all([
+          supabase.auth.getSession(),
+          AsyncStorage.getItem('onboarding_complete'),
+        ]);
         setSession(session);
-        // Init RevenueCat after auth — don't block the splash
+        setShowOnboarding(!onboardingDone);
         if (session?.user) {
           initPurchases(session.user.id);
         }
@@ -109,6 +115,14 @@ export default function App() {
   }, [appReady]);
 
   if (!appReady) return null; // Keep native splash screen visible
+
+  if (showOnboarding) {
+    return (
+      <View style={{ flex: 1 }} onLayout={onLayoutRootView}>
+        <OnboardingScreen onDone={() => setShowOnboarding(false)} />
+      </View>
+    );
+  }
 
   if (!session) {
     return (

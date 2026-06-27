@@ -8,6 +8,7 @@ import {
   FlatList,
   ActivityIndicator,
   Alert,
+  Image,
 } from 'react-native';
 import * as Location from 'expo-location';
 import { useNavigation } from '@react-navigation/native';
@@ -75,15 +76,23 @@ export default function ExploreScreen() {
         const res = await fetch(url);
         const data = await res.json();
         if (data.results) {
-          results.push(...data.results.map(place => ({
-            id: place.place_id,
-            name: place.name,
-            latitude: place.geometry.location.lat,
-            longitude: place.geometry.location.lng,
-            type,
-            isGoogle: true,
-            vicinity: place.vicinity,
-          })));
+          results.push(...data.results.map(place => {
+            const photoRef = place.photos?.[0]?.photo_reference;
+            const photoUrl = photoRef
+              ? `https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=${photoRef}&key=${GOOGLE_MAPS_API_KEY}`
+              : null;
+            return {
+              id: place.place_id,
+              name: place.name,
+              latitude: place.geometry.location.lat,
+              longitude: place.geometry.location.lng,
+              type,
+              isGoogle: true,
+              vicinity: place.vicinity,
+              photoUrl,
+              rating: place.rating || null,
+            };
+          }));
         }
       } catch (e) {
         console.log('Places fetch error:', e.message);
@@ -161,28 +170,50 @@ export default function ExploreScreen() {
           onPress={() => handleUndiscoveredTap(spot)}
           activeOpacity={0.7}
         >
-          <View style={styles.cardTop}>
-            <View style={styles.undiscoveredNameRow}>
-              <Text style={styles.lockIcon}>🔒</Text>
-              <Text style={styles.undiscoveredName} numberOfLines={1}>
-                {spot.name}
-              </Text>
+          {spot.photoUrl && (
+            <View style={styles.undiscoveredImageWrap}>
+              <Image
+                source={{ uri: spot.photoUrl }}
+                style={styles.undiscoveredImage}
+                resizeMode="cover"
+              />
+              <View style={styles.undiscoveredImageOverlay} />
+              <View style={styles.lockOverlay}>
+                <Text style={styles.lockOverlayText}>🔒 UNCLAIMED</Text>
+              </View>
             </View>
-            <View style={styles.undiscoveredBadge}>
-              <Text style={styles.undiscoveredBadgeText}>UNDISCOVERED</Text>
+          )}
+          <View style={styles.undiscoveredCardBody}>
+            <View style={styles.cardTop}>
+              <View style={styles.undiscoveredNameRow}>
+                {!spot.photoUrl && <Text style={styles.lockIcon}>🔒</Text>}
+                <Text style={styles.undiscoveredName} numberOfLines={1}>
+                  {spot.name}
+                </Text>
+              </View>
+              {!spot.photoUrl && (
+                <View style={styles.undiscoveredBadge}>
+                  <Text style={styles.undiscoveredBadgeText}>UNDISCOVERED</Text>
+                </View>
+              )}
             </View>
-          </View>
-          <View style={styles.cardBottom}>
-            <View style={[styles.typeTag, styles[`tag_${spot.type}`]]}>
-              <Text style={[styles.typeTagText, styles[`tagText_${spot.type}`]]}>
-                {spot.type.toUpperCase()}
-              </Text>
+            <View style={styles.cardBottom}>
+              <View style={[styles.typeTag, styles[`tag_${spot.type}`]]}>
+                <Text style={[styles.typeTagText, styles[`tagText_${spot.type}`]]}>
+                  {spot.type.toUpperCase()}
+                </Text>
+              </View>
+              <View style={styles.undiscoveredMeta}>
+                {spot.rating && (
+                  <Text style={styles.ratingText}>⭐ {spot.rating}</Text>
+                )}
+                {spot.vicinity ? (
+                  <Text style={styles.vicinity} numberOfLines={1}>
+                    {spot.vicinity}
+                  </Text>
+                ) : null}
+              </View>
             </View>
-            {spot.vicinity ? (
-              <Text style={styles.vicinity} numberOfLines={1}>
-                {spot.vicinity}
-              </Text>
-            ) : null}
           </View>
         </TouchableOpacity>
       );
@@ -312,14 +343,32 @@ const styles = StyleSheet.create({
   undiscoveredCard: {
     backgroundColor: '#0f0f0f',
     borderRadius: 12,
-    padding: 16,
     borderWidth: 1,
     borderColor: '#1a1a1a',
-    borderStyle: 'dashed',
+    overflow: 'hidden',
   },
+  undiscoveredImageWrap: { width: '100%', height: 140, position: 'relative' },
+  undiscoveredImage: { width: '100%', height: '100%' },
+  undiscoveredImageOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+  },
+  lockOverlay: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderWidth: 1,
+    borderColor: '#333',
+  },
+  lockOverlayText: { color: '#aaa', fontSize: 10, fontWeight: 'bold', letterSpacing: 1 },
+  undiscoveredCardBody: { padding: 12 },
   undiscoveredNameRow: { flexDirection: 'row', alignItems: 'center', flex: 1, marginRight: 8 },
   lockIcon: { fontSize: 13, marginRight: 6 },
-  undiscoveredName: { color: '#444', fontSize: 15, fontWeight: '600', flex: 1 },
+  undiscoveredName: { color: '#888', fontSize: 15, fontWeight: '600', flex: 1 },
   undiscoveredBadge: {
     backgroundColor: '#111',
     borderRadius: 4,
@@ -329,7 +378,9 @@ const styles = StyleSheet.create({
     borderColor: '#222',
   },
   undiscoveredBadgeText: { color: '#333', fontSize: 9, fontWeight: 'bold', letterSpacing: 1 },
-  vicinity: { color: '#333', fontSize: 11, flex: 1, textAlign: 'right', marginLeft: 8 },
+  undiscoveredMeta: { flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1, justifyContent: 'flex-end' },
+  ratingText: { color: '#555', fontSize: 11 },
+  vicinity: { color: '#333', fontSize: 11, textAlign: 'right' },
 
   // Heat dots
   heatDots: { flexDirection: 'row', gap: 3 },
