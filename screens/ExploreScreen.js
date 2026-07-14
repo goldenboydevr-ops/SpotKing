@@ -13,6 +13,7 @@ import {
 import * as Location from 'expo-location';
 import { useNavigation } from '@react-navigation/native';
 import { supabase } from '../lib/supabase';
+import { t } from '../lib/i18n';
 
 const GOOGLE_MAPS_API_KEY = 'AIzaSyCO1zElgBXnn_Sx0mPLlGXFhSuv3DG5Pik';
 const FILTERS = ['All', 'Skate', 'Surf', 'Surfskate'];
@@ -140,12 +141,12 @@ export default function ExploreScreen() {
 
   function handleUndiscoveredTap(spot) {
     Alert.alert(
-      '👑 Unclaimed Territory',
-      `"${spot.name}" has never been claimed.\n\nBe the first to drop in, put it on the map, and post a photo — the crown is yours for the taking.`,
+      t('unclaimedTerritory'),
+      `"${spot.name}"\n\n${t('unclaimedBody')}`,
       [
-        { text: "I'll pass 🤙", style: 'cancel' },
+        { text: t('illPass'), style: 'cancel' },
         {
-          text: 'Claim This Spot 👑',
+          text: t('claimThisSpot'),
           onPress: () => navigation.navigate('Add Spot'),
         },
       ]
@@ -193,7 +194,7 @@ export default function ExploreScreen() {
               </View>
               {!spot.photoUrl && (
                 <View style={styles.undiscoveredBadge}>
-                  <Text style={styles.undiscoveredBadgeText}>UNDISCOVERED</Text>
+                  <Text style={styles.undiscoveredBadgeText}>{t('undiscovered')}</Text>
                 </View>
               )}
             </View>
@@ -249,7 +250,7 @@ export default function ExploreScreen() {
       <View style={styles.searchBar}>
         <TextInput
           style={styles.searchInput}
-          placeholder="Search spots..."
+          placeholder={t('searchPlaceholder')}
           placeholderTextColor="#555"
           value={search}
           onChangeText={setSearch}

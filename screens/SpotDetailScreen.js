@@ -15,6 +15,7 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 import { supabase } from '../lib/supabase';
 import { getProStatus } from '../lib/purchases';
+import { t } from '../lib/i18n';
 
 export default function SpotDetailScreen({ route, navigation }) {
   const { spot } = route.params;
@@ -210,10 +211,6 @@ export default function SpotDetailScreen({ route, navigation }) {
   }
 
   async function uploadPhoto() {
-    if (!isPro) {
-      navigation.navigate('Paywall');
-      return;
-    }
 
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
@@ -393,7 +390,7 @@ async function voteOnMedia(mediaItem) {
           <Image source={{ uri: streetViewUrl }} style={styles.streetViewImage} resizeMode="cover" />
           <View style={styles.streetViewOverlay} />
           <View style={styles.streetViewBadge}>
-            <Text style={styles.streetViewBadgeText}>📍 Google Street View</Text>
+            <Text style={styles.streetViewBadgeText}>{t('streetViewLabel')}</Text>
           </View>
         </View>
       )}
@@ -418,7 +415,7 @@ async function voteOnMedia(mediaItem) {
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>HEAT LEVEL</Text>
+        <Text style={styles.sectionTitle}>{t('heatLevel')}</Text>
         <View style={styles.heatRow}>
           {Array.from({ length: 5 }, (_, i) => (
             <Text key={i} style={{ fontSize: 26, opacity: i < spot.heat_level ? 1 : 0.15 }}>
@@ -427,17 +424,17 @@ async function voteOnMedia(mediaItem) {
           ))}
         </View>
         <Text style={styles.heatLabel}>
-          {spot.heat_level <= 1 && '✅ All clear — skate/surf freely'}
-          {spot.heat_level === 2 && '👀 Occasional patrols — stay sharp'}
-          {spot.heat_level === 3 && '⚠️ Regular security presence'}
-          {spot.heat_level === 4 && '🔥 High risk — be quick'}
-          {spot.heat_level >= 5 && '🚔 Danger zone — cops always here'}
+          {spot.heat_level <= 1 && t('allClear')}
+          {spot.heat_level === 2 && t('occasionalPatrols')}
+          {spot.heat_level === 3 && t('regularSecurity')}
+          {spot.heat_level === 4 && t('highRisk')}
+          {spot.heat_level >= 5 && t('dangerZone')}
         </Text>
       </View>
 
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>PHOTOS</Text>
+          <Text style={styles.sectionTitle}>{t('photos')}</Text>
           <TouchableOpacity
             style={styles.uploadButton}
             onPress={uploadPhoto}
@@ -446,15 +443,15 @@ async function voteOnMedia(mediaItem) {
             {uploading ? (
               <ActivityIndicator color="#0a0a0a" size="small" />
             ) : (
-              <Text style={styles.uploadButtonText}>+ ADD PHOTO</Text>
+              <Text style={styles.uploadButtonText}>{t('addPhoto')}</Text>
             )}
           </TouchableOpacity>
         </View>
 
         {media.length === 0 ? (
           <View style={styles.emptyPhotos}>
-            <Text style={styles.emptyText}>No photos yet. Be the first to drop one.</Text>
-            <Text style={styles.emptyHint}>📱 Upload from your camera roll — no need to be at the spot</Text>
+            <Text style={styles.emptyText}>{t('noPhotos')}</Text>
+            <Text style={styles.emptyHint}>{t('uploadHint')}</Text>
           </View>
         ) : (
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>

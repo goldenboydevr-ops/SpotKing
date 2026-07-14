@@ -7,12 +7,20 @@ import {
   TouchableOpacity,
   ActivityIndicator,
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { supabase } from '../lib/supabase';
+import { getProStatus } from '../lib/purchases';
 
 const TABS = ['Global', 'Skate', 'Surf', 'Surfskate'];
 
 export default function RanksScreen() {
+  const navigation = useNavigation();
   const [activeTab, setActiveTab] = useState('Global');
+  const [isPro, setIsPro] = useState(false);
+
+  useEffect(() => {
+    getProStatus().then(setIsPro);
+  }, []);
   const [rankings, setRankings] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -107,6 +115,15 @@ export default function RanksScreen() {
 
       {loading ? (
         <ActivityIndicator color="#E8C84A" style={{ marginTop: 40 }} />
+      ) : !isPro ? (
+        <View style={styles.proGate}>
+          <Text style={styles.proGateEmoji}>👑</Text>
+          <Text style={styles.proGateTitle}>Pro Feature</Text>
+          <Text style={styles.proGateBody}>Upgrade to Pro to compete for King/Queen and see the full leaderboard.</Text>
+          <TouchableOpacity style={styles.proGateButton} onPress={() => navigation.navigate('Paywall')}>
+            <Text style={styles.proGateButtonText}>UPGRADE TO PRO</Text>
+          </TouchableOpacity>
+        </View>
       ) : rankings.length === 0 ? (
         <View style={styles.empty}>
           <Text style={styles.emptyTitle}>No kings yet.</Text>
@@ -146,4 +163,10 @@ const styles = StyleSheet.create({
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', marginTop: 80, padding: 24 },
   emptyTitle: { color: '#444', fontSize: 20, fontWeight: 'bold', marginBottom: 8 },
   emptyText: { color: '#333', fontSize: 14, textAlign: 'center', lineHeight: 20 },
+  proGate: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 40, marginTop: 40 },
+  proGateEmoji: { fontSize: 64, marginBottom: 20 },
+  proGateTitle: { color: '#E8C84A', fontSize: 22, fontWeight: 'bold', marginBottom: 12 },
+  proGateBody: { color: '#666', fontSize: 15, textAlign: 'center', lineHeight: 22, marginBottom: 28 },
+  proGateButton: { backgroundColor: '#E8C84A', borderRadius: 12, paddingVertical: 14, paddingHorizontal: 32 },
+  proGateButtonText: { color: '#0a0a0a', fontWeight: 'bold', fontSize: 14, letterSpacing: 2 },
 });

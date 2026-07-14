@@ -18,7 +18,7 @@ import ProfileScreen from './screens/ProfileScreen';
 import AuthScreen from './screens/AuthScreen';
 import SpotDetailScreen from './screens/SpotDetailScreen';
 import PaywallScreen from './screens/PaywallScreen';
-import OnboardingScreen from './screens/OnboardingScreen';
+import OnboardingScreen, { getOnboardingKey } from './screens/OnboardingScreen';
 
 // Keep splash screen visible while we check auth
 SplashScreen.preventAutoHideAsync();
@@ -81,7 +81,7 @@ export default function App() {
       try {
         const [{ data: { session } }, onboardingDone] = await Promise.all([
           supabase.auth.getSession(),
-          AsyncStorage.getItem('onboarding_complete'),
+          AsyncStorage.getItem(getOnboardingKey()),
         ]);
         setSession(session);
         setShowOnboarding(!onboardingDone);
