@@ -44,6 +44,7 @@
           "locationAlwaysAndWhenInUsePermission": "SpotKing needs your location to show nearby spots."
         }
       ],
+      "expo-localization"
     ],
     "extra": {
       "eas": {
