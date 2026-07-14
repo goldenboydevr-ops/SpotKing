@@ -294,6 +294,72 @@ async function voteOnMedia(mediaItem) {
     updateKing();
   }
 
+  function showSpotActions() {
+    const isOwner = spot.created_by === currentUserId;
+    const options = isOwner
+      ? ['Delete Spot', 'Cancel']
+      : ['Request Deletion', 'Cancel'];
+    const destructiveIdx = 0;
+    const cancelIdx = 1;
+
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions(
+        { options, cancelButtonIndex: cancelIdx, destructiveButtonIndex: destructiveIdx },
+        async (idx) => {
+          if (idx === 0) {
+            isOwner ? confirmDeleteSpot() : requestSpotDeletion();
+          }
+        }
+      );
+    } else {
+      Alert.alert('Spot options', null, [
+        {
+          text: isOwner ? 'Delete Spot' : 'Request Deletion',
+          style: 'destructive',
+          onPress: () => isOwner ? confirmDeleteSpot() : requestSpotDeletion(),
+        },
+        { text: 'Cancel', style: 'cancel' },
+      ]);
+    }
+  }
+
+  function confirmDeleteSpot() {
+    Alert.alert(
+      'Delete Spot',
+      `Remove "${spot.name}" from SpotKing? All photos, reviews and votes will be deleted.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            await supabase.from('media').delete().eq('spot_id', spot.id);
+            await supabase.from('reviews').delete().eq('spot_id', spot.id);
+            await supabase.from('votes').delete().in(
+              'media_id',
+              (await supabase.from('media').select('id').eq('spot_id', spot.id)).data?.map(m => m.id) || []
+            );
+            await supabase.from('spots').delete().eq('id', spot.id);
+            Alert.alert('Deleted', 'Spot removed.');
+            navigation.goBack();
+          },
+        },
+      ]
+    );
+  }
+
+  async function requestSpotDeletion() {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+    await supabase.from('reports').insert({
+      reporter_id: session.user.id,
+      content_type: 'spot',
+      content_id: spot.id,
+      reason: 'Deletion requested by user',
+    });
+    Alert.alert('Request sent', 'Thanks — we\'ll review this spot and remove it if appropriate.');
+  }
+
   async function updateKing() {
     const { data } = await supabase
       .from('media')
@@ -315,10 +381,32 @@ async function voteOnMedia(mediaItem) {
     }
   }
 
+  const streetViewUrl = `https://maps.googleapis.com/maps/api/streetview?size=600x300&location=${spot.latitude},${spot.longitude}&key=AIzaSyCO1zElgBXnn_Sx0mPLlGXFhSuv3DG5Pik`;
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      {/* Street View hero — shown when no community photos yet */}
+      {media.length === 0 && (
+        <View style={styles.streetViewWrap}>
+          <Image source={{ uri: streetViewUrl }} style={styles.streetViewImage} resizeMode="cover" />
+          <View style={styles.streetViewOverlay} />
+          <View style={styles.streetViewBadge}>
+            <Text style={styles.streetViewBadgeText}>📍 Google Street View</Text>
+          </View>
+        </View>
+      )}
+
       <View style={styles.header}>
-        <Text style={styles.name}>{spot.name}</Text>
+        <View style={styles.headerTitleRow}>
+          <Text style={styles.name} numberOfLines={2}>{spot.name}</Text>
+          <TouchableOpacity
+            onPress={showSpotActions}
+            style={styles.spotMenuButton}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Text style={styles.spotMenuText}>⋯</Text>
+          </TouchableOpacity>
+        </View>
         <View style={styles.typeRow}>
           <Text style={styles.type}>{spot.type.toUpperCase()}</Text>
         </View>
@@ -362,7 +450,10 @@ async function voteOnMedia(mediaItem) {
         </View>
 
         {media.length === 0 ? (
-          <Text style={styles.emptyText}>No photos yet. Be the first to drop one.</Text>
+          <View style={styles.emptyPhotos}>
+            <Text style={styles.emptyText}>No photos yet. Be the first to drop one.</Text>
+            <Text style={styles.emptyHint}>📱 Upload from your camera roll — no need to be at the spot</Text>
+          </View>
         ) : (
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             {media.map((item) => (
@@ -467,8 +558,18 @@ async function voteOnMedia(mediaItem) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0a0a0a' },
   content: { padding: 20 },
+  // Street View hero
+  streetViewWrap: { marginHorizontal: -20, marginTop: -20, marginBottom: 20, height: 200, position: 'relative' },
+  streetViewImage: { width: '100%', height: '100%' },
+  streetViewOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.35)' },
+  streetViewBadge: { position: 'absolute', bottom: 10, right: 10, backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4 },
+  streetViewBadgeText: { color: '#aaa', fontSize: 10 },
+  // Header
   header: { marginBottom: 24 },
-  name: { fontSize: 32, fontWeight: 'bold', color: '#E8C84A', letterSpacing: 1, marginBottom: 8 },
+  headerTitleRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 8 },
+  spotMenuButton: { padding: 4, marginTop: 4 },
+  spotMenuText: { color: '#555', fontSize: 22, letterSpacing: 1 },
+  name: { fontSize: 28, fontWeight: 'bold', color: '#E8C84A', letterSpacing: 1, flex: 1, marginRight: 8 },
   typeRow: { flexDirection: 'row', marginBottom: 8 },
   type: { backgroundColor: '#1a1a0a', color: '#E8C84A', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6, fontSize: 11, fontWeight: 'bold', borderWidth: 1, borderColor: '#E8C84A44' },
   description: { color: '#888', fontSize: 14, lineHeight: 20, marginTop: 8 },
@@ -494,7 +595,9 @@ const styles = StyleSheet.create({
   input: { backgroundColor: '#0a0a0a', borderWidth: 1, borderColor: '#333', borderRadius: 8, padding: 12, color: '#fff', fontSize: 14, textAlignVertical: 'top', marginBottom: 12 },
   button: { backgroundColor: '#E8C84A', borderRadius: 8, padding: 14, alignItems: 'center' },
   buttonText: { color: '#0a0a0a', fontWeight: 'bold', fontSize: 14, letterSpacing: 1 },
-  emptyText: { color: '#444', fontSize: 14, textAlign: 'center', marginTop: 12 },
+  emptyPhotos: { alignItems: 'center', paddingVertical: 12 },
+  emptyText: { color: '#444', fontSize: 14, textAlign: 'center', marginBottom: 6 },
+  emptyHint: { color: '#333', fontSize: 12, textAlign: 'center' },
   reviewCard: { backgroundColor: '#161616', borderRadius: 10, padding: 14, marginBottom: 10, borderWidth: 1, borderColor: '#222' },
   reviewHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
   reviewHeaderRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
