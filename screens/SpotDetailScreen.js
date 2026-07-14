@@ -27,11 +27,20 @@ export default function SpotDetailScreen({ route, navigation }) {
   const [uploading, setUploading] = useState(false);
   const [isPro, setIsPro] = useState(false);
   const [currentUserId, setCurrentUserId] = useState(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [blockedUsers, setBlockedUsers] = useState(new Set());
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) setCurrentUserId(session.user.id);
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (session?.user) {
+        setCurrentUserId(session.user.id);
+        const { data } = await supabase
+          .from('profiles')
+          .select('is_admin')
+          .eq('id', session.user.id)
+          .single();
+        setIsAdmin(data?.is_admin === true);
+      }
     });
     fetchReviews();
     fetchMedia();
@@ -295,28 +304,21 @@ async function voteOnMedia(mediaItem) {
   }
 
   function showSpotActions() {
-    const isOwner = spot.created_by === currentUserId;
-    const options = isOwner
+    const options = isAdmin
       ? ['Delete Spot', 'Cancel']
       : ['Request Deletion', 'Cancel'];
-    const destructiveIdx = 0;
-    const cancelIdx = 1;
 
     if (Platform.OS === 'ios') {
       ActionSheetIOS.showActionSheetWithOptions(
-        { options, cancelButtonIndex: cancelIdx, destructiveButtonIndex: destructiveIdx },
-        async (idx) => {
-          if (idx === 0) {
-            isOwner ? confirmDeleteSpot() : requestSpotDeletion();
-          }
-        }
+        { options, cancelButtonIndex: 1, destructiveButtonIndex: 0 },
+        (idx) => { if (idx === 0) isAdmin ? confirmDeleteSpot() : requestSpotDeletion(); }
       );
     } else {
       Alert.alert('Spot options', null, [
         {
-          text: isOwner ? 'Delete Spot' : 'Request Deletion',
+          text: isAdmin ? 'Delete Spot' : 'Request Deletion',
           style: 'destructive',
-          onPress: () => isOwner ? confirmDeleteSpot() : requestSpotDeletion(),
+          onPress: () => isAdmin ? confirmDeleteSpot() : requestSpotDeletion(),
         },
         { text: 'Cancel', style: 'cancel' },
       ]);
