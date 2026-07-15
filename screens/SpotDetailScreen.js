@@ -380,14 +380,20 @@ async function voteOnMedia(mediaItem) {
     }
   }
 
-  const streetViewUrl = `https://maps.googleapis.com/maps/api/streetview?size=600x300&location=${spot.latitude},${spot.longitude}&key=AIzaSyCO1zElgBXnn_Sx0mPLlGXFhSuv3DG5Pik`;
+  const [streetViewOk, setStreetViewOk] = useState(true);
+  const streetViewUrl = `https://maps.googleapis.com/maps/api/streetview?size=600x300&location=${spot.latitude},${spot.longitude}&fov=90&key=AIzaSyCO1zElgBXnn_Sx0mPLlGXFhSuv3DG5Pik`;
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       {/* Street View hero — shown when no community photos yet */}
-      {media.length === 0 && (
+      {media.length === 0 && streetViewOk && (
         <View style={styles.streetViewWrap}>
-          <Image source={{ uri: streetViewUrl }} style={styles.streetViewImage} resizeMode="cover" />
+          <Image
+            source={{ uri: streetViewUrl }}
+            style={styles.streetViewImage}
+            resizeMode="cover"
+            onError={() => setStreetViewOk(false)}
+          />
           <View style={styles.streetViewOverlay} />
           <View style={styles.streetViewBadge}>
             <Text style={styles.streetViewBadgeText}>{t('streetViewLabel')}</Text>

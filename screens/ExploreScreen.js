@@ -78,15 +78,18 @@ export default function ExploreScreen() {
         const data = await res.json();
         if (data.results) {
           results.push(...data.results.map(place => {
+            const lat = place.geometry.location.lat;
+            const lng = place.geometry.location.lng;
             const photoRef = place.photos?.[0]?.photo_reference;
+            // Prefer Places photo, fall back to Street View
             const photoUrl = photoRef
-              ? `https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=${photoRef}&key=${GOOGLE_MAPS_API_KEY}`
-              : null;
+              ? `https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photoreference=${photoRef}&key=${GOOGLE_MAPS_API_KEY}`
+              : `https://maps.googleapis.com/maps/api/streetview?size=600x300&location=${lat},${lng}&fov=90&key=${GOOGLE_MAPS_API_KEY}`;
             return {
               id: place.place_id,
               name: place.name,
-              latitude: place.geometry.location.lat,
-              longitude: place.geometry.location.lng,
+              latitude: lat,
+              longitude: lng,
               type,
               isGoogle: true,
               vicinity: place.vicinity,
@@ -171,32 +174,24 @@ export default function ExploreScreen() {
           onPress={() => handleUndiscoveredTap(spot)}
           activeOpacity={0.7}
         >
-          {spot.photoUrl && (
-            <View style={styles.undiscoveredImageWrap}>
-              <Image
-                source={{ uri: spot.photoUrl }}
-                style={styles.undiscoveredImage}
-                resizeMode="cover"
-              />
-              <View style={styles.undiscoveredImageOverlay} />
-              <View style={styles.lockOverlay}>
-                <Text style={styles.lockOverlayText}>🔒 UNCLAIMED</Text>
-              </View>
+          <View style={styles.undiscoveredImageWrap}>
+            <Image
+              source={{ uri: spot.photoUrl }}
+              style={styles.undiscoveredImage}
+              resizeMode="cover"
+            />
+            <View style={styles.undiscoveredImageOverlay} />
+            <View style={styles.lockOverlay}>
+              <Text style={styles.lockOverlayText}>🔒 UNCLAIMED</Text>
             </View>
-          )}
+          </View>
           <View style={styles.undiscoveredCardBody}>
             <View style={styles.cardTop}>
               <View style={styles.undiscoveredNameRow}>
-                {!spot.photoUrl && <Text style={styles.lockIcon}>🔒</Text>}
                 <Text style={styles.undiscoveredName} numberOfLines={1}>
                   {spot.name}
                 </Text>
               </View>
-              {!spot.photoUrl && (
-                <View style={styles.undiscoveredBadge}>
-                  <Text style={styles.undiscoveredBadgeText}>{t('undiscovered')}</Text>
-                </View>
-              )}
             </View>
             <View style={styles.cardBottom}>
               <View style={[styles.typeTag, styles[`tag_${spot.type}`]]}>
