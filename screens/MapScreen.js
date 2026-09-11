@@ -11,12 +11,37 @@ const GOOGLE_MAPS_API_KEY = 'AIzaSyCO1zElgBXnn_Sx0mPLlGXFhSuv3DG5Pik';
 const TYPE_COLOR = { skate: '#E8C84A', surf: '#4AC8E8', surfskate: '#E84A8A' };
 const TYPE_EMOJI = { skate: '🛹', surf: '🏄', surfskate: '🛹' };
 
+// Defined outside component to prevent remounting on every render (fixes Android tap events)
+function CustomMarker({ type, undiscovered }) {
+  const color = TYPE_COLOR[type] || '#E8C84A';
+  const emoji = TYPE_EMOJI[type] || '📍';
+  return (
+    <View style={[
+      markerStyles.wrap,
+      undiscovered ? markerStyles.undiscovered : { backgroundColor: color, borderColor: color + 'aa' }
+    ]}>
+      <Text style={markerStyles.emoji}>{undiscovered ? '🔒' : emoji}</Text>
+    </View>
+  );
+}
+
+const markerStyles = StyleSheet.create({
+  wrap: { width: 36, height: 36, borderRadius: 18, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
+  undiscovered: { backgroundColor: '#1a1a1a', borderColor: '#444' },
+  emoji: { fontSize: 18 },
+});
+
 const PLACE_SEARCHES = [
-  { keyword: 'skatepark', type: 'skate' },
-  { keyword: 'skate plaza', type: 'skate' },
-  { keyword: 'surf spot', type: 'surf' },
-  { keyword: 'surf break', type: 'surf' },
-  { keyword: 'surfskate', type: 'surfskate' },
+  { keyword: 'skatepark',       type: 'skate' },
+  { keyword: 'skate plaza',     type: 'skate' },
+  { keyword: 'pista de skate',  type: 'skate' },
+  { keyword: 'plaza de skate',  type: 'skate' },
+  { keyword: 'surf spot',       type: 'surf' },
+  { keyword: 'surf break',      type: 'surf' },
+  { keyword: 'ola de surf',     type: 'surf' },
+  { keyword: 'playa surf',      type: 'surf' },
+  { keyword: 'surfskate',       type: 'surfskate' },
+  { keyword: 'surf skate',      type: 'surfskate' },
 ];
 
 export default function MapScreen() {
@@ -103,19 +128,6 @@ export default function MapScreen() {
     fetchGoogleSpots(region.latitude, region.longitude);
   }
 
-  function CustomMarker({ type, undiscovered }) {
-    const color = TYPE_COLOR[type] || '#E8C84A';
-    const emoji = TYPE_EMOJI[type] || '📍';
-    return (
-      <View style={[
-        styles.markerWrap,
-        undiscovered ? styles.markerUndiscovered : { backgroundColor: color, borderColor: color + 'aa' }
-      ]}>
-        <Text style={styles.markerEmoji}>{undiscovered ? '🔒' : emoji}</Text>
-      </View>
-    );
-  }
-
   return (
     <View style={styles.container}>
       {/* Legend */}
@@ -186,23 +198,6 @@ const styles = StyleSheet.create({
   legendItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   legendDot: { width: 10, height: 10, borderRadius: 5 },
   legendText: { color: '#888', fontSize: 11 },
-  markerWrap: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: '#555',
-    backgroundColor: '#222',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.5,
-    shadowRadius: 3,
-    elevation: 5,
-  },
-  markerUndiscovered: { backgroundColor: '#1a1a1a', borderColor: '#333' },
-  markerEmoji: { fontSize: 18 },
   loadingOverlay: {
     position: 'absolute',
     top: 20,

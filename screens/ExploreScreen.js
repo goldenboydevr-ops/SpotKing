@@ -18,12 +18,18 @@ import { t } from '../lib/i18n';
 const GOOGLE_MAPS_API_KEY = 'AIzaSyCO1zElgBXnn_Sx0mPLlGXFhSuv3DG5Pik';
 const FILTERS = ['All', 'Skate', 'Surf', 'Surfskate'];
 
-// Google Places keyword → spot type mapping
+// Google Places keyword → spot type mapping (EN + ES for Argentina coverage)
 const PLACE_SEARCHES = [
-  { keyword: 'skatepark',   type: 'skate' },
-  { keyword: 'skate plaza', type: 'skate' },
-  { keyword: 'surf spot',   type: 'surf' },
-  { keyword: 'surf break',  type: 'surf' },
+  { keyword: 'skatepark',        type: 'skate' },
+  { keyword: 'skate plaza',      type: 'skate' },
+  { keyword: 'pista de skate',   type: 'skate' },
+  { keyword: 'plaza de skate',   type: 'skate' },
+  { keyword: 'surf spot',        type: 'surf' },
+  { keyword: 'surf break',       type: 'surf' },
+  { keyword: 'ola de surf',      type: 'surf' },
+  { keyword: 'playa surf',       type: 'surf' },
+  { keyword: 'surfskate',        type: 'surfskate' },
+  { keyword: 'surf skate',       type: 'surfskate' },
 ];
 
 export default function ExploreScreen() {
