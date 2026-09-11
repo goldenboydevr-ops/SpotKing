@@ -24,6 +24,9 @@ export default function ProfileScreen() {
   });
   const [loading, setLoading] = useState(true);
   const [isPro, setIsPro] = useState(false);
+  const [sessions, setSessions] = useState([]);
+  const [followerCount, setFollowerCount] = useState(0);
+  const [followingCount, setFollowingCount] = useState(0);
 
   useEffect(() => {
     fetchProfile();
@@ -72,6 +75,23 @@ export default function ProfileScreen() {
       crownsHeld: crownsCount || 0,
       totalVotes,
     });
+
+    // Sessions
+    const { data: sessionData } = await supabase
+      .from('sessions')
+      .select('*, spots(name, type)')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(20);
+    setSessions(sessionData || []);
+
+    // Follow counts
+    const [{ count: frs }, { count: fng }] = await Promise.all([
+      supabase.from('follows').select('*', { count: 'exact', head: true }).eq('following_id', userId),
+      supabase.from('follows').select('*', { count: 'exact', head: true }).eq('follower_id', userId),
+    ]);
+    setFollowerCount(frs || 0);
+    setFollowingCount(fng || 0);
 
     setLoading(false);
   }
@@ -184,6 +204,21 @@ export default function ProfileScreen() {
         </View>
       </View>
 
+      <View style={styles.statsGrid}>
+        <View style={styles.statBox}>
+          <Text style={styles.statNum}>{followerCount}</Text>
+          <Text style={styles.statLabel}>FOLLOWERS</Text>
+        </View>
+        <View style={styles.statBox}>
+          <Text style={styles.statNum}>{followingCount}</Text>
+          <Text style={styles.statLabel}>FOLLOWING</Text>
+        </View>
+        <View style={styles.statBox}>
+          <Text style={styles.statNum}>{sessions.length}</Text>
+          <Text style={styles.statLabel}>SESSIONS</Text>
+        </View>
+      </View>
+
       {!isPro && (
         <View style={styles.proCard}>
           <Text style={styles.proTitle}>GO SPOT KING PRO</Text>
@@ -220,6 +255,32 @@ export default function ProfileScreen() {
           </TouchableOpacity>
         )}
       </View>
+
+      {sessions.length > 0 && (
+        <View style={styles.sessionsSection}>
+          <Text style={styles.sectionTitle}>RECENT SESSIONS</Text>
+          {sessions.slice(0, 5).map((s, i) => {
+            const spotType = s.spots?.type || 'skate';
+            const emoji = { skate: '🛹', surf: '🏄', surfskate: '🛹🌊' }[spotType] || '📍';
+            const color = { skate: '#E8C84A', surf: '#4AC8E8', surfskate: '#E84A8A' }[spotType] || '#E8C84A';
+            const dur = s.duration_minutes >= 60
+              ? `${s.duration_minutes / 60}hr`
+              : `${s.duration_minutes}min`;
+            return (
+              <View key={s.id} style={[styles.sessionRow, i < sessions.length - 1 && styles.sessionRowBorder]}>
+                <Text style={styles.sessionEmoji}>{emoji}</Text>
+                <View style={styles.sessionInfo}>
+                  <Text style={styles.sessionSpot} numberOfLines={1}>{s.spots?.name || 'Unknown spot'}</Text>
+                  <Text style={styles.sessionMeta}>{dur} · {'⭐'.repeat(s.rating)}</Text>
+                </View>
+                <View style={[styles.sessionTypePill, { borderColor: color + '44' }]}>
+                  <Text style={[styles.sessionTypeText, { color }]}>{spotType.toUpperCase()}</Text>
+                </View>
+              </View>
+            );
+          })}
+        </View>
+      )}
 
       <TouchableOpacity style={styles.signOutButton} onPress={signOut}>
         <Text style={styles.signOutText}>SIGN OUT</Text>
@@ -262,4 +323,14 @@ const styles = StyleSheet.create({
   signOutText: { color: '#555', fontWeight: 'bold', letterSpacing: 2, fontSize: 13 },
   deleteButton: { alignItems: 'center', paddingVertical: 12, marginBottom: 32 },
   deleteButtonText: { color: '#333', fontSize: 13 },
+  sessionsSection: { backgroundColor: '#161616', borderRadius: 12, marginBottom: 24, borderWidth: 1, borderColor: '#222', overflow: 'hidden', padding: 16 },
+  sectionTitle: { color: '#E8C84A', fontSize: 11, fontWeight: 'bold', letterSpacing: 2, marginBottom: 14 },
+  sessionRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, gap: 12 },
+  sessionRowBorder: { borderBottomWidth: 1, borderBottomColor: '#1e1e1e' },
+  sessionEmoji: { fontSize: 22, width: 30, textAlign: 'center' },
+  sessionInfo: { flex: 1 },
+  sessionSpot: { color: '#ccc', fontSize: 14, fontWeight: '500' },
+  sessionMeta: { color: '#555', fontSize: 12, marginTop: 2 },
+  sessionTypePill: { borderWidth: 1, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
+  sessionTypeText: { fontSize: 9, fontWeight: 'bold', letterSpacing: 1 },
 });

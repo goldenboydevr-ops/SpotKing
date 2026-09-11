@@ -31,6 +31,7 @@ export default function SpotDetailScreen({ route, navigation }) {
   const [currentUserId, setCurrentUserId] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [blockedUsers, setBlockedUsers] = useState(new Set());
+  const [sessionCount, setSessionCount] = useState(0);
 
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
@@ -47,6 +48,7 @@ export default function SpotDetailScreen({ route, navigation }) {
     fetchReviews();
     fetchMedia();
     fetchBlockedUsers();
+    fetchSessionCount();
     getProStatus().then(setIsPro);
   }, []);
 
@@ -77,6 +79,14 @@ export default function SpotDetailScreen({ route, navigation }) {
     if (!error && data) {
       setMedia(data.filter(m => !blockedUsers.has(m.user_id)));
     }
+  }
+
+  async function fetchSessionCount() {
+    const { count } = await supabase
+      .from('sessions')
+      .select('id', { count: 'exact' })
+      .eq('spot_id', spot.id);
+    setSessionCount(count || 0);
   }
 
   async function fetchBlockedUsers() {
@@ -493,6 +503,23 @@ async function voteOnMedia(mediaItem) {
         )}
       </View>
 
+      {/* Log Session */}
+      <View style={styles.section}>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>SESSIONS</Text>
+          {sessionCount > 0 && (
+            <Text style={styles.sessionCount}>{sessionCount} logged</Text>
+          )}
+        </View>
+        <TouchableOpacity
+          style={styles.logSessionButton}
+          onPress={() => navigation.navigate('LogSession', { spot })}
+          activeOpacity={0.85}
+        >
+          <Text style={styles.logSessionText}>+ LOG A SESSION</Text>
+        </TouchableOpacity>
+      </View>
+
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>REVIEWS</Text>
         <View style={styles.reviewForm}>
@@ -607,6 +634,9 @@ const styles = StyleSheet.create({
   input: { backgroundColor: '#0a0a0a', borderWidth: 1, borderColor: '#333', borderRadius: 8, padding: 12, color: '#fff', fontSize: 14, textAlignVertical: 'top', marginBottom: 12 },
   button: { backgroundColor: '#E8C84A', borderRadius: 8, padding: 14, alignItems: 'center' },
   buttonText: { color: '#0a0a0a', fontWeight: 'bold', fontSize: 14, letterSpacing: 1 },
+  logSessionButton: { backgroundColor: '#111', borderWidth: 1, borderColor: '#333', borderRadius: 10, padding: 14, alignItems: 'center', borderStyle: 'dashed' },
+  logSessionText: { color: '#555', fontWeight: 'bold', fontSize: 13, letterSpacing: 2 },
+  sessionCount: { color: '#555', fontSize: 12 },
   emptyPhotos: { alignItems: 'center', paddingVertical: 12 },
   emptyText: { color: '#444', fontSize: 14, textAlign: 'center', marginBottom: 6 },
   emptyHint: { color: '#333', fontSize: 12, textAlign: 'center' },
