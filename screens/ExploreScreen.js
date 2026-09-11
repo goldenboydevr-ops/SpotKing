@@ -143,17 +143,7 @@ export default function ExploreScreen() {
   }
 
   function handleUndiscoveredTap(spot) {
-    Alert.alert(
-      t('unclaimedTerritory'),
-      `"${spot.name}"\n\n${t('unclaimedBody')}`,
-      [
-        { text: t('illPass'), style: 'cancel' },
-        {
-          text: t('claimThisSpot'),
-          onPress: () => navigation.navigate('Add Spot'),
-        },
-      ]
-    );
+    navigation.navigate('UndiscoveredSpot', { spot });
   }
 
   function HeatDots({ level }) {

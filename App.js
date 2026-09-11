@@ -19,6 +19,7 @@ import AuthScreen from './screens/AuthScreen';
 import SpotDetailScreen from './screens/SpotDetailScreen';
 import PaywallScreen from './screens/PaywallScreen';
 import OnboardingScreen, { getOnboardingKey } from './screens/OnboardingScreen';
+import UndiscoveredSpotScreen from './screens/UndiscoveredSpotScreen';
 
 // Keep splash screen visible while we check auth
 SplashScreen.preventAutoHideAsync();
@@ -145,6 +146,7 @@ export default function App() {
       >
         <Stack.Screen name="Main" component={MainTabs} options={{ headerShown: false }} />
         <Stack.Screen name="SpotDetail" component={SpotDetailScreen} options={{ title: 'SPOT' }} />
+        <Stack.Screen name="UndiscoveredSpot" component={UndiscoveredSpotScreen} options={{ title: 'UNCLAIMED SPOT' }} />
         <Stack.Screen name="Paywall" component={PaywallScreen} options={{ title: 'GO PRO', presentation: 'modal' }} />
       </Stack.Navigator>
     </NavigationContainer>

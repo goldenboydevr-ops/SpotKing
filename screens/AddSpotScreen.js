@@ -18,17 +18,20 @@ const GOOGLE_MAPS_API_KEY = 'AIzaSyCO1zElgBXnn_Sx0mPLlGXFhSuv3DG5Pik';
 const SPOT_TYPES = ['skate', 'surf', 'surfskate'];
 const HEAT_LEVELS = [1, 2, 3, 4, 5];
 
-export default function AddSpotScreen({ navigation }) {
-  const [name, setName] = useState('');
+export default function AddSpotScreen({ navigation, route }) {
+  const prefill = route?.params?.prefill;
+  const [name, setName] = useState(prefill?.name || '');
   const [description, setDescription] = useState('');
-  const [type, setType] = useState('skate');
+  const [type, setType] = useState(prefill?.type || 'skate');
   const [heatLevel, setHeatLevel] = useState(1);
   const [loading, setLoading] = useState(false);
 
   // Location state
-  const [locationSearch, setLocationSearch] = useState('');
+  const [locationSearch, setLocationSearch] = useState(prefill?.locationLabel || '');
   const [suggestions, setSuggestions] = useState([]);
-  const [selectedLocation, setSelectedLocation] = useState(null); // { latitude, longitude, label }
+  const [selectedLocation, setSelectedLocation] = useState(
+    prefill ? { latitude: prefill.latitude, longitude: prefill.longitude, label: prefill.locationLabel } : null
+  );
   const [locating, setLocating] = useState(false);
   const mapRef = useRef(null);
 
