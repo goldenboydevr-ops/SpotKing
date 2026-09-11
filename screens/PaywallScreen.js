@@ -12,11 +12,11 @@ import RevenueCatUI, { PAYWALL_RESULT } from 'react-native-purchases-ui';
 import { getOfferings, purchasePackage, restorePurchases, ENTITLEMENT_PRO } from '../lib/purchases';
 
 const PERKS = [
-  { icon: '📸', text: 'Upload photos & videos to any spot' },
   { icon: '👑', text: 'Compete for King/Queen of every spot' },
-  { icon: '🗺️', text: 'Offline maps — no signal needed' },
-  { icon: '🔥', text: 'No ads, ever' },
+  { icon: '🏆', text: 'Full leaderboard rankings by sport' },
+  { icon: '🔥', text: 'See who's ruling spots near you' },
   { icon: '⚡', text: 'Early access to new features' },
+  { icon: '🤙', text: 'Support independent skate & surf culture' },
 ];
 
 const PERIOD_LABEL = {
