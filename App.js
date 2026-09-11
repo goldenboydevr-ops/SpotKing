@@ -9,6 +9,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { supabase } from './lib/supabase';
 import { initPurchases, identifyUser, resetUser } from './lib/purchases';
+import { registerForPushNotifications } from './lib/notifications';
 
 import MapScreen from './screens/MapScreen';
 import ExploreScreen from './screens/ExploreScreen';
@@ -20,6 +21,8 @@ import SpotDetailScreen from './screens/SpotDetailScreen';
 import PaywallScreen from './screens/PaywallScreen';
 import OnboardingScreen, { getOnboardingKey } from './screens/OnboardingScreen';
 import UndiscoveredSpotScreen from './screens/UndiscoveredSpotScreen';
+import UserProfileScreen from './screens/UserProfileScreen';
+import ActivityFeedScreen from './screens/ActivityFeedScreen';
 
 // Keep splash screen visible while we check auth
 SplashScreen.preventAutoHideAsync();
@@ -64,6 +67,11 @@ function MainTabs() {
         options={{ tabBarIcon: ({ color }) => <Text style={{ fontSize: 20, color }}>👑</Text> }}
       />
       <Tab.Screen
+        name="Activity"
+        component={ActivityFeedScreen}
+        options={{ tabBarIcon: ({ color }) => <Text style={{ fontSize: 20, color }}>🔔</Text> }}
+      />
+      <Tab.Screen
         name="Me"
         component={ProfileScreen}
         options={{ tabBarIcon: ({ color }) => <Text style={{ fontSize: 20, color }}>🤙</Text> }}
@@ -88,6 +96,7 @@ export default function App() {
         setShowOnboarding(!onboardingDone);
         if (session?.user) {
           initPurchases(session.user.id);
+          registerForPushNotifications(session.user.id);
         }
       } catch (e) {
         console.warn('Auth check error:', e);
@@ -147,6 +156,7 @@ export default function App() {
         <Stack.Screen name="Main" component={MainTabs} options={{ headerShown: false }} />
         <Stack.Screen name="SpotDetail" component={SpotDetailScreen} options={{ title: 'SPOT' }} />
         <Stack.Screen name="UndiscoveredSpot" component={UndiscoveredSpotScreen} options={{ title: 'UNCLAIMED SPOT' }} />
+        <Stack.Screen name="UserProfile" component={UserProfileScreen} options={{ title: 'PROFILE' }} />
         <Stack.Screen name="Paywall" component={PaywallScreen} options={{ title: 'GO PRO', presentation: 'modal' }} />
       </Stack.Navigator>
     </NavigationContainer>

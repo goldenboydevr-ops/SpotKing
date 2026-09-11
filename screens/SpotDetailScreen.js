@@ -16,6 +16,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { supabase } from '../lib/supabase';
 import { getProStatus } from '../lib/purchases';
 import { t } from '../lib/i18n';
+import { sendPushToUser, createNotification } from '../lib/notifications';
 
 export default function SpotDetailScreen({ route, navigation }) {
   const { spot } = route.params;
@@ -291,9 +292,13 @@ async function voteOnMedia(mediaItem) {
 
     if (updateError) {
       console.log('Update error:', JSON.stringify(updateError));
-      Alert.alert('Vote saved but count failed', updateError.message);
     } else {
-      console.log('Vote count updated to:', newCount);
+      // Notify the photo owner if it's not the voter
+      if (mediaItem.user_id !== session.user.id) {
+        const { data: voter } = await supabase.from('profiles').select('username').eq('id', session.user.id).single();
+        await createNotification(mediaItem.user_id, 'vote', session.user.id, spot.id, mediaItem.id);
+        await sendPushToUser(mediaItem.user_id, '▲ New vote!', `${voter?.username || 'Someone'} voted for your photo at ${spot.name}`);
+      }
     }
 
     fetchMedia();
@@ -536,7 +541,9 @@ async function voteOnMedia(mediaItem) {
           reviews.map((review) => (
             <View key={review.id} style={styles.reviewCard}>
               <View style={styles.reviewHeader}>
-                <Text style={styles.reviewUser}>{review.username}</Text>
+                <TouchableOpacity onPress={() => review.user_id && navigation.navigate('UserProfile', { userId: review.user_id, username: review.username })}>
+                  <Text style={styles.reviewUser}>{review.username}</Text>
+                </TouchableOpacity>
                 <View style={styles.reviewHeaderRight}>
                   <Text style={styles.reviewRating}>{'★'.repeat(review.rating)}</Text>
                   <TouchableOpacity
