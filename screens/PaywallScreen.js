@@ -14,7 +14,7 @@ import { getOfferings, purchasePackage, restorePurchases, ENTITLEMENT_PRO } from
 const PERKS = [
   { icon: '👑', text: 'Compete for King/Queen of every spot' },
   { icon: '🏆', text: 'Full leaderboard rankings by sport' },
-  { icon: '🔥', text: 'See who's ruling spots near you' },
+  { icon: '🔥', text: "See who's ruling spots near you" },
   { icon: '⚡', text: 'Early access to new features' },
   { icon: '🤙', text: 'Support independent skate & surf culture' },
 ];
